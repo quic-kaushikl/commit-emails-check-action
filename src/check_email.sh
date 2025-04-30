@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause
 #####################################################################
 # This script is used to verify that the correct Author and Committer email
 # addresses are used for commits to Proprietary and Open Source repositories.

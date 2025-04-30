@@ -14,3 +14,10 @@ addresses are appropriate for the repo.
 ```yaml
 uses: qualcomm/commit-emails-check-action@main
 ```
+
+## Copyright and License
+
+```text
+Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+SPDX-License-Identifier: BSD-3-Clause
+```
