@@ -1,0 +1,14 @@
+name: "Qualcomm PR email addresses checker"
+description: "Validate each commit's author/committer email addresses are appropriate for the repo"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check emails
+      id: check_emails
+      shell: bash
+      run: ./check_email_pr.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PULL_NUMBER: ${{ github.event.number }}
+        COMMITS_COUNT: ${{ github.event.pull_request.commits }}

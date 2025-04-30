@@ -1,0 +1,12 @@
+on: [pull_request, push]
+
+jobs:
+  email_check_ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run tests
+        shell: bash
+        run: ./check_email_pr.sh --test
