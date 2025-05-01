@@ -14,9 +14,7 @@ addresses are appropriate for the repo.
 ```yaml
 name: PR email addresses checker
 
-on:
-  pull_request:
-    branches: ["main"]
+on: pull_request
 
 jobs:
   pr-check-emails:
