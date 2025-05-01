@@ -1,4 +1,16 @@
-on: [pull_request, push]
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "check_email_pr.sh"
+  push:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "check_email_pr.sh"
 
 jobs:
   email_check_ci:
