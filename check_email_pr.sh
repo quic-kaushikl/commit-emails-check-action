@@ -11,11 +11,13 @@ get_pr_commits() {
     [ "$COMMITS_COUNT" -gt 100 ] && debug "Needs pagination"
     # TODO: Handle paginated results
     # https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
+    local endpoint="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER/commits?per_page=$COMMITS_COUNT"
+    echo "::debug::Getting commits from $endpoint"
     curl -L --no-progress-meter \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GITHUB_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
-        "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER/commits?per_page=$COMMITS_COUNT"
+        "$endpoint"
 }
 
 split_commits_and_add_metadata() {
