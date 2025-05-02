@@ -7,13 +7,20 @@ error() { echo "::error::$1" >&2 ; } # message
 
 # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#list-commits-on-a-pull-request
 get_pr_commits() {
-    [ -n "$TEST_MODE" ] && cat ./test/pr_list_commits.json && return
+    if [ -n "$TEST_MODE" ] ; then
+        debug "Using list_commits test data"
+        cat ./test/pr_list_commits.json
+        return
+    fi
     [ "$COMMITS_COUNT" -gt 100 ] && debug "Needs pagination"
     # TODO: Handle paginated results
     # https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     local endpoint="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER/commits?per_page=$COMMITS_COUNT"
-    echo "::debug::Getting commits from $endpoint"
-    curl -L --no-progress-meter \
+    debug "Getting commits from $endpoint"
+    local debug_opts=()
+    [ -n "$RUNNER_DEBUG" ] && debug_opts=("--verbose" "--progress-meter" "--show-error")
+    curl -L --no-progress-meter --fail-with-body \
+        "${debug_opts[@]}" \
         -H "Accept: application/vnd.github+json" \
         -H "Authorization: Bearer $GITHUB_TOKEN" \
         -H "X-GitHub-Api-Version: 2022-11-28" \
