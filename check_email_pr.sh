@@ -2,12 +2,13 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
 
-debug() { echo "::debug::$1" ; } # message
+debug() { echo "::debug::$1" >&2 ; } # message
+error() { echo "::error::$1" >&2 ; } # message
 
 # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#list-commits-on-a-pull-request
 get_pr_commits() {
     [ -n "$TEST_MODE" ] && cat ./test/pr_list_commits.json && return
-    [ "$COMMITS_COUNT" -gt 100 ] && echo "::debug::Needs pagination"
+    [ "$COMMITS_COUNT" -gt 100 ] && debug "Needs pagination"
     # TODO: Handle paginated results
     # https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28#using-link-headers
     curl -L --no-progress-meter \
@@ -28,7 +29,7 @@ usage() { # error_message [error_code]
     usage: $prog [--test]
 
 EOF
-    [ $# -gt 0 ] && echo "Error - $@" >&2
+    [ $# -gt 0 ] && error "$@"
     [ $# -gt 1 ] && exit $2
     exit 10
 }

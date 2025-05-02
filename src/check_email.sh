@@ -6,9 +6,9 @@
 # addresses are used for commits to Proprietary and Open Source repositories.
 ########################################################################
 
-debug() { [ "$VERBOSE" = "true" ] && echo "::debug::$1" ; } # message
-error() { echo "::error::$1" ; HAS_ERRORS=1 ; } # message
-warning() { echo "::warning::$1" ; } # message
+debug() { [ "$VERBOSE" = "true" ] && echo "::debug::$1" >&2 ; } # message
+error() { echo "::error::$1" >&2 ; HAS_ERRORS=1 ; } # message
+warning() { echo "::warning::$1" >&2 ; } # message
 
 json_val_by_key() { # key > value
     echo "$JSON" | jq -r "$1 // empty"
