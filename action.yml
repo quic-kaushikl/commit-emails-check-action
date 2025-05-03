@@ -7,7 +7,7 @@ runs:
     - name: Check emails
       id: check_emails
       shell: bash
-      run: ./check_email_pr.sh
+      run: ${GITHUB_ACTION_PATH}/check_email_pr.sh
       env:
         GITHUB_TOKEN: ${{ github.token }}
         PULL_NUMBER: ${{ github.event.number }}
