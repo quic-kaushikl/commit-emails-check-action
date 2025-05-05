@@ -1,6 +1,6 @@
 # commit-emails-check-action
 
-[![CI](https://github.com/qualcomm/commit-emails-check-action/actions/workflows/ci.yaml/badge.svg)](https://github.com/qualcomm/commit-emails-check-action/actions/workflows/ci.yaml)
+[![CI](https://github.com/qualcomm/commit-emails-check-action/actions/workflows/ci.yml/badge.svg)](https://github.com/qualcomm/commit-emails-check-action/actions/workflows/ci.yml)
 
 Qualcomm PR email addresses checker
 
