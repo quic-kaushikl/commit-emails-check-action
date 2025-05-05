@@ -16,6 +16,10 @@ name: PR email addresses checker
 
 on: pull_request
 
+# If using this action on a private/internal repo, you must grant read access to PRs
+permissions:
+  pull-requests: read
+
 jobs:
   pr-check-emails:
     runs-on: ubuntu-latest
