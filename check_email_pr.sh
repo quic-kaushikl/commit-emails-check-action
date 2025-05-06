@@ -2,6 +2,10 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
 
+readlink -f / &> /dev/null || readlink() { greadlink "$@" ; } # for MacOS
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
+
 debug() { echo "::debug::$1" >&2 ; } # message
 error() { echo "::error::$1" >&2 ; } # message
 
@@ -9,7 +13,7 @@ error() { echo "::error::$1" >&2 ; } # message
 get_pr_commits() {
     if [ -n "$TEST_MODE" ] ; then
         debug "Using list_commits test data"
-        cat ./test/pr_list_commits.json
+        cat "$MYDIR"/test/pr_list_commits.json
         return
     fi
     [ "$COMMITS_COUNT" -gt 100 ] && debug "Needs pagination"
@@ -54,7 +58,7 @@ done
 RESULT=0
 while read -r pr_commit ; do
     debug "Running check on: $pr_commit"
-    ./src/check_email.sh --json "$pr_commit" "${TEST_MODE[@]}" || RESULT=1
+    "$MYDIR"/src/check_email.sh --json "$pr_commit" "${TEST_MODE[@]}" || RESULT=1
 done < <(get_pr_commits | split_commits_and_add_metadata)
 
 exit $RESULT
