@@ -64,12 +64,8 @@ is_quicinc_allowed() { # role
         Author) property="allow-quicinc-authors" ;;
         *) return 2 ;; # Not a valid role, programming error
     esac
-    echo "$CUSTOM_PROPERTIES_JSON" | jq -e '
-      any(.[];
-        .property_name == "'"$property"'" and
-        .value == "true"
-      )
-    ' > /dev/null
+    echo "$CUSTOM_PROPERTIES_JSON" | jq -e --arg property "$property" \
+    'any(.[]; .property_name == $property and .value == "true")' > /dev/null
 }
 
 convert_to_epoch_sec_if_needed() { # date-string (possibly already epoch_seconds)
@@ -124,7 +120,8 @@ isOssValidEmailAddr() { # email_address role
         is_qti "$addr" || is_oss "$addr"
         return
     fi
-    # Block <username>@quicinc.com
+    # Block <username>@quicinc.com unless the corresponding custom repo properties
+    # are set to true
     if is_quicinc "$addr" && ! is_quic_username "$addr" && ! is_quicinc_allowed "$role" ; then
         return 1
     fi
