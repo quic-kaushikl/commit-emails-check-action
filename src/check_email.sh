@@ -10,14 +10,14 @@ debug() { [ "$VERBOSE" = "true" ] && echo "::debug::$1" >&2 ; } # message
 error() { echo "::error::$1" >&2 ; HAS_ERRORS=1 ; } # message
 warning() { echo "::warning::$1" >&2 ; } # message
 
-json_val_by_key() { # key > value
-    echo "$JSON" | jq -r "$1 // empty"
+json_val_by_key() { # json key > value
+    echo "$1" | jq -r "$2 // empty"
 }
 
 has_email_characters() { echo "$1" | grep -q "[@<>]" ; } # name
 
 in_allowlist() { # email
-    echo "$JSON" | jq -e --arg email "$1" \
+    echo "$COMMIT_JSON" | jq -e --arg email "$1" \
         '.extra_allowed_emails? | contains([$email])' > /dev/null
 }
 
@@ -33,7 +33,7 @@ is_current_or_past_qc_email() { # email_address
 }
 
 is_upstream_commit() {
-    local commit_msg=$(json_val_by_key ".commit.message")
+    local commit_msg=$(json_val_by_key "$COMMIT_JSON" ".commit.message")
     contains_upstream_commit_footers "$commit_msg" || \
         contains_cherry_picked_from_text "$commit_msg"
 }
@@ -55,6 +55,17 @@ is_author_date_before() { # cutoff_date
 is_committer_date_after() { # cutoff_date
     local cutoff_date=$(convert_to_epoch_sec_if_needed "$1")
     [ "$(convert_to_epoch_sec_if_needed "$COMMITTER_DATE")" -gt "$cutoff_date" ]
+}
+
+is_quicinc_allowed() { # role
+    local property
+    case "$1" in
+        Committer) property="allow-quicinc-committers" ;;
+        Author) property="allow-quicinc-authors" ;;
+        *) return 2 ;; # Not a valid role, programming error
+    esac
+    echo "$CUSTOM_PROPERTIES_JSON" | jq -e --arg property "$property" \
+        'any(.[]; .property_name == $property and .value == "true")' > /dev/null
 }
 
 convert_to_epoch_sec_if_needed() { # date-string (possibly already epoch_seconds)
@@ -90,26 +101,28 @@ isOssValid() { # email_address role
     local addr=$1 role=$2 ; shift 2
     case "$role" in
         Committer)
-            isOssValidCommitter "$addr"
+            isOssValidEmailAddr "$addr" "$role"
             return ;;
         Author)
-            isOssValidCommitter "$addr" || \
+            isOssValidEmailAddr "$addr" "$role" || \
                 (is_upstream_commit "$COMMIT" && isValidUpstreamAuthor "$addr")
             return ;;
         *) return 2 ;; # Not a valid role, programming error
     esac
 }
 
-isOssValidCommitter() { # email_address
+isOssValidEmailAddr() { # email_address role
     local addr=$1 ; shift 1
+    local role=$1 ; shift 1
     # Block @.*qualcomm.com
     if is_any_qualcomm_com "$addr" ; then
         # except @qti.qualcomm.com and @oss.qualcomm.com
         is_qti "$addr" || is_oss "$addr"
         return
     fi
-    # Block <username>@quicinc.com
-    if is_quicinc "$addr" && ! is_quic_username "$addr" ; then
+    # Block <username>@quicinc.com unless the corresponding custom repo properties
+    # are set to true
+    if is_quicinc "$addr" && ! is_quic_username "$addr" && ! is_quicinc_allowed "$role" ; then
         return 1
     fi
     # Block quic_<username>@quicinc.com (starting Jan 1 2026)
@@ -144,9 +157,10 @@ usage() { # error_message [error_code]
     local prog=$(basename -- "$0")
     cat <<EOF
 
-    usage: $prog --json <json_string> [--verbose]
+    usage: $prog --commit-json <json_string> \
+        [--custom-properties-json <json_string>] [--verbose]
 
-    The input provided to --json should contain this structure (additional
+    The input provided to --commit-json should contain this structure (additional
     properties will be ignored):
 {
   "commit": {
@@ -168,6 +182,23 @@ usage() { # error_message [error_code]
 
   The "date" values should be either epoch seconds or a format like ISO 8061
   parseable by the \`date\` command.
+
+    The input provided to --custom-properties-json should contain this structure:
+[
+  {
+    "property_name": "Require-commit-email-check",
+    "value": "true"
+  },
+  {
+    "property_name": "allow-quicinc-authors",
+    "value": "true"
+  },
+  {
+    "property_name": "allow-quicinc-committers",
+    "value": "true"
+  }
+]
+
 EOF
 
     [ $# -gt 0 ] && error "$@"
@@ -177,10 +208,12 @@ EOF
 
 HAS_ERRORS=0
 VERBOSE=false
+CUSTOM_PROPERTIES_JSON="[]"
 while [ $# -gt 0 ] ; do
     case "$1" in
         --test-function) shift ; "$@" ; exit ;;
-        --json) shift ; JSON=$1 ;;
+        --commit-json) shift ; COMMIT_JSON=$1 ;;
+        --custom-properties-json) shift ; CUSTOM_PROPERTIES_JSON=$1 ;;
         --verbose) VERBOSE=true ;;
         *) usage ;;
     esac
@@ -188,21 +221,21 @@ while [ $# -gt 0 ] ; do
 done
 
 # Proprietary or Open Source
-if ! REPO_EMAIL_TYPE=$(json_val_by_key ".license_type") || \
+if ! REPO_EMAIL_TYPE=$(json_val_by_key "$COMMIT_JSON" ".license_type") || \
         [ -z "$REPO_EMAIL_TYPE" ] ; then
     error "Cannot determine project license type. Must provide 'license_type' \
         as either 'PROPRIETARY' or 'OPEN_SOURCE'."
     exit
 fi
 
-COMMITTER_DATE=$(json_val_by_key ".commit.committer.date")
-COMMITTER_EMAIL=$(json_val_by_key ".commit.committer.email")
-COMMITTER_NAME=$(json_val_by_key ".commit.committer.name")
+COMMITTER_DATE=$(json_val_by_key "$COMMIT_JSON" ".commit.committer.date")
+COMMITTER_EMAIL=$(json_val_by_key "$COMMIT_JSON" ".commit.committer.email")
+COMMITTER_NAME=$(json_val_by_key "$COMMIT_JSON" ".commit.committer.name")
 debug "Committer is: $COMMITTER_NAME <$COMMITTER_EMAIL> , date: $COMMITTER_DATE"
 
-AUTHOR_DATE=$(json_val_by_key ".commit.author.date")
-AUTHOR_EMAIL=$(json_val_by_key ".commit.author.email")
-AUTHOR_NAME=$(json_val_by_key ".commit.author.name")
+AUTHOR_DATE=$(json_val_by_key "$COMMIT_JSON" ".commit.author.date")
+AUTHOR_EMAIL=$(json_val_by_key "$COMMIT_JSON" ".commit.author.email")
+AUTHOR_NAME=$(json_val_by_key "$COMMIT_JSON" ".commit.author.name")
 debug "Author is: $AUTHOR_NAME <$AUTHOR_EMAIL> , date: $AUTHOR_DATE"
 
 # Check for malformed names
